@@ -5,11 +5,11 @@ let sessionWarningTimer;
 const LOGOUT_TIME_MS = 30 * 60 * 1000; // 30 minutes
 const WARNING_TIME_MS = 28 * 60 * 1000; // 28 minutes
 
-document.addEventListener("DOMContentLoaded", function() {
+document.addEventListener("DOMContentLoaded", function () {
     document.getElementById("authCoreLoginForm").addEventListener("submit", executeAuthenticationPipeline);
     const datePicker = document.getElementById("dutyScheduleDatePicker");
     if (datePicker) datePicker.value = new Date().toISOString().split('T')[0];
-    
+
     const themeToggleBtn = document.getElementById("themeToggleBtn");
     if (themeToggleBtn) {
         themeToggleBtn.addEventListener("click", () => {
@@ -29,7 +29,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const sidebarToggleBtn = document.getElementById("sidebarToggleBtn");
     const sidebarDock = document.getElementById("sidebarDock");
     if (sidebarToggleBtn && sidebarDock) {
-        sidebarToggleBtn.addEventListener("click", function(event) {
+        sidebarToggleBtn.addEventListener("click", function (event) {
             event.stopPropagation();
             if (sidebarDock.classList.contains("-translate-x-full")) {
                 sidebarDock.classList.remove("-translate-x-full");
@@ -40,7 +40,7 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         });
 
-        document.addEventListener("click", function(event) {
+        document.addEventListener("click", function (event) {
             if (window.innerWidth < 768) {
                 const clickedInsideSidebar = sidebarDock.contains(event.target);
                 const clickedToggleButton = (event.target === sidebarToggleBtn || sidebarToggleBtn.contains(event.target));
@@ -55,7 +55,7 @@ document.addEventListener("DOMContentLoaded", function() {
     const togglePasswordBtn = document.getElementById("togglePasswordVisibilityBtn");
     const loginPasswordInput = document.getElementById("loginPassword");
     if (togglePasswordBtn && loginPasswordInput) {
-        togglePasswordBtn.addEventListener("click", function() {
+        togglePasswordBtn.addEventListener("click", function () {
             if (loginPasswordInput.type === "password") {
                 loginPasswordInput.type = "text";
                 this.innerText = "HIDE";
@@ -68,7 +68,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     const forgotPasswordLink = document.getElementById("forgotPasswordLink");
     if (forgotPasswordLink) {
-        forgotPasswordLink.addEventListener("click", function(e) {
+        forgotPasswordLink.addEventListener("click", function (e) {
             e.preventDefault();
             Swal.fire({
                 title: 'Reset Credentials',
@@ -82,7 +82,7 @@ document.addEventListener("DOMContentLoaded", function() {
                 if (result.isConfirmed && result.value) {
                     fetch('api.php?action=trigger_forgot_password', {
                         method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ username: result.value })
                     }).then(res => res.json()).then(data => {
                         Swal.fire('Request Sent', 'The System Administrator has been notified of your password reset request.', 'success');
@@ -107,7 +107,7 @@ document.addEventListener("DOMContentLoaded", function() {
 // ==========================================================================
 function resetSessionTimers() {
     if (typeof activeSessionUser === 'undefined' || !activeSessionUser) return;
-    
+
     clearTimeout(sessionWarningTimer);
     clearTimeout(sessionTimeoutTimer);
 
@@ -128,7 +128,7 @@ function resetSessionTimers() {
             if (result.isConfirmed) {
                 fetch('api.php?action=check_session').then(() => resetSessionTimers());
             } else if (result.isDismissed && result.dismiss === Swal.DismissReason.cancel) {
-                triggerSystemLogoutSequence(true); 
+                triggerSystemLogoutSequence(true);
             }
         });
     }, WARNING_TIME_MS);
@@ -154,7 +154,7 @@ function applyGlobalAppTheme(theme) {
         if (themeIcon) themeIcon.setAttribute("data-lucide", "moon");
         if (themeText) themeText.innerText = "Dark Mode";
     }
-    
+
     if (typeof lucide !== 'undefined') lucide.createIcons();
     if (typeof updateChartsDisplay === "function") updateChartsDisplay();
 }
@@ -179,7 +179,7 @@ function executeAuthenticationPipeline(e) {
     e.preventDefault();
     const username = document.getElementById("loginUsername").value.trim();
     const pass = document.getElementById("loginPassword").value;
-    
+
     // Add visual loading spinner feedback directly to the button
     const submitBtn = document.querySelector("#authCoreLoginForm button[type='submit']");
     const originalText = submitBtn.innerText;
@@ -189,26 +189,26 @@ function executeAuthenticationPipeline(e) {
 
     fetch('api.php?action=login', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username: username, password: pass })
     })
-    .then(res => res.json())
-    .then(res => {
-        submitBtn.innerText = originalText;
-        submitBtn.disabled = false;
+        .then(res => res.json())
+        .then(res => {
+            submitBtn.innerText = originalText;
+            submitBtn.disabled = false;
 
-        if (res.status === 'success') {
-            bootstrapAuthenticatedWorkspace(res.user);
-            Swal.fire({ title: 'Access Signature Verified', text: `Welcome back, ${res.user.full_name}`, icon: 'success', timer: 1500, showConfirmButton: false });
-        } else {
-            Swal.fire({ title: 'Access Denied', text: res.message, icon: 'error', confirmButtonColor: '#F3862A' });
-        }
-    })
-    .catch(err => {
-        submitBtn.innerText = originalText;
-        submitBtn.disabled = false;
-        Swal.fire({ title: 'Network Error', text: 'Failed to contact authentication server.', icon: 'error' });
-    });
+            if (res.status === 'success') {
+                bootstrapAuthenticatedWorkspace(res.user);
+                Swal.fire({ title: 'Access Signature Verified', text: `Welcome back, ${res.user.full_name}`, icon: 'success', timer: 1500, showConfirmButton: false });
+            } else {
+                Swal.fire({ title: 'Access Denied', text: res.message, icon: 'error', confirmButtonColor: '#F3862A' });
+            }
+        })
+        .catch(err => {
+            submitBtn.innerText = originalText;
+            submitBtn.disabled = false;
+            Swal.fire({ title: 'Network Error', text: 'Failed to contact authentication server.', icon: 'error' });
+        });
 }
 
 function triggerSystemLogoutSequence(force = false) {
@@ -221,8 +221,8 @@ function triggerSystemLogoutSequence(force = false) {
     }
 
     const isDark = document.documentElement.classList.contains('dark');
-    const bgColor = isDark ? '#111827' : '#ffffff'; 
-    const textColor = isDark ? '#f3f4f6' : '#1e293b'; 
+    const bgColor = isDark ? '#111827' : '#ffffff';
+    const textColor = isDark ? '#f3f4f6' : '#1e293b';
 
     Swal.fire({
         title: 'Terminate Session?',
@@ -249,7 +249,7 @@ function bootstrapAuthenticatedWorkspace(userProfile) {
     activeSessionUser = userProfile;
     resetSessionTimers(); // Start background timeout monitoring
     isolateLoginScreenState(false);
-    
+
     const displayName = userProfile.full_name || userProfile.username || "Unknown User";
     const displayRole = userProfile.role || userProfile.user_role || "USER";
     const userRoleStr = displayRole.toLowerCase();
@@ -257,7 +257,7 @@ function bootstrapAuthenticatedWorkspace(userProfile) {
     document.getElementById("topUserName").innerText = displayName;
     document.getElementById("topUserRole").innerText = displayRole.replace('_', ' ');
     document.getElementById("topUserInitials").innerText = displayName.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
-    
+
     // Sidebar Node References
     const adminBlock = document.getElementById("systemAdministrationSidebarSection");
     const navDashboard = document.getElementById("nav-dashboard");
@@ -265,7 +265,7 @@ function bootstrapAuthenticatedWorkspace(userProfile) {
     const navUsers = document.getElementById("nav-users");
     const navLogs = document.getElementById("nav-logs");
     const navConfig = document.getElementById("nav-config");
-    
+
     // Top Header Node References
     const topHeaderInquiriesBtn = document.getElementById("topHeaderInquiriesBtn");
 
@@ -286,7 +286,7 @@ function bootstrapAuthenticatedWorkspace(userProfile) {
         if (navLogs) navLogs.style.display = "flex";
         if (navConfig) navConfig.style.display = "flex";
         if (topHeaderInquiriesBtn) topHeaderInquiriesBtn.style.display = "flex"; // Show for admin
-    } 
+    }
     else if (userRoleStr === 'manager') {
         if (navDashboard) navDashboard.style.display = "flex";
         if (adminBlock) adminBlock.style.display = "block";
@@ -294,7 +294,7 @@ function bootstrapAuthenticatedWorkspace(userProfile) {
         if (navConfig) navConfig.style.display = "flex"; // Can config keywords
         if (topHeaderInquiriesBtn) topHeaderInquiriesBtn.style.display = "flex"; // Show for manager
         // Tenant Properties & System Logs remain hidden
-    } 
+    }
     else if (userRoleStr === 'it_staff') {
         if (navDashboard) navDashboard.style.display = "flex";
         if (adminBlock) adminBlock.style.display = "block";
@@ -307,7 +307,7 @@ function bootstrapAuthenticatedWorkspace(userProfile) {
         // Users: Hide dashboard completely from sidebar
         if (navDashboard) navDashboard.style.display = "none";
         if (topHeaderInquiriesBtn) topHeaderInquiriesBtn.style.display = "none"; // STRICT ENFORCEMENT: Never show for users
-        
+
         const titleText = document.getElementById("navDutiesTitleText");
         const instText = document.getElementById("dutyBoardInstructionsText");
         if (titleText) titleText.innerText = "My Daily Workspaces";
@@ -315,7 +315,7 @@ function bootstrapAuthenticatedWorkspace(userProfile) {
         const quickPasteUI = document.getElementById("quickPasteWrapperUI");
         if (quickPasteUI) quickPasteUI.classList.remove("hidden");
     }
-    
+
     loadGlobalTenantProperties();
 }
 
@@ -326,11 +326,11 @@ function loadGlobalTenantProperties() {
             if (res.status === 'success') {
                 corporateDomainsList = res.data;
                 renderDynamicSidebarProperties();
-                populateDomainDropdowns(); 
-                
+                populateDomainDropdowns();
+
                 const sitesCountNode = document.getElementById("dashboardActiveSitesCount");
                 if (sitesCountNode) sitesCountNode.innerText = `${corporateDomainsList.length} Properties`;
-                
+
                 // Route safely depending on role
                 const startingView = activeSessionUser.role === 'user' ? 'duties' : 'dashboard';
 
@@ -373,7 +373,7 @@ function triggerNotificationCenter() {
             if (activeSessionUser.role === 'user') modalTitle = '📋 My Assigned Tasks';
             else if (['admin', 'it_staff'].includes(activeSessionUser.role)) modalTitle = '🔑 Password Reset Requests';
             else if (activeSessionUser.role === 'manager') modalTitle = '✅ Completed Tasks Log';
-            
+
             if (res.status === 'success' && res.data.length > 0) {
                 const activeData = res.data.filter(item => item.is_read != 1);
 
@@ -384,7 +384,7 @@ function triggerNotificationCenter() {
                         activeData.forEach(task => {
                             const isComplete = task.status === 'Complete';
                             const badgeStyle = isComplete ? 'text-emerald-500 bg-emerald-50 dark:bg-emerald-950/40' : 'text-amber-500 bg-amber-50 dark:bg-amber-950/40';
-                            
+
                             itemsHTML += `
                                 <div class="p-3 bg-slate-50 dark:bg-gray-900 border border-slate-200 dark:border-gray-800 rounded-xl space-y-1">
                                     <div class="flex justify-between items-center text-[10px] text-slate-400">
@@ -435,7 +435,7 @@ function triggerNotificationCenter() {
             }).then((result) => {
                 if (result.isDenied) {
                     fetch('api.php?action=mark_notification_read', {
-                        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id: 0 })
+                        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: 0 })
                     }).then(() => { SystemToast.fire({ icon: 'success', title: 'All notifications cleared' }); });
                 }
             });
@@ -444,7 +444,7 @@ function triggerNotificationCenter() {
 
 function dismissNotificationItem(logId) {
     fetch('api.php?action=mark_notification_read', {
-        method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ id: logId })
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: logId })
     }).then(res => res.json()).then(data => {
         if (data.status === 'success') {
             const element = document.getElementById(`notification-item-${logId}`);
@@ -477,7 +477,7 @@ function switchViewMode(targetView, propertyId = null) {
     if (activeSessionUser && activeSessionUser.role === 'user' && targetView === 'dashboard') {
         targetView = 'duties';
     }
-    
+
     activeViewMode = targetView;
     const views = {
         'dashboard': document.getElementById("enterpriseDashboardSection"),
@@ -489,20 +489,20 @@ function switchViewMode(targetView, propertyId = null) {
         'domains': document.getElementById("tenantPropertiesSection"),
         'inquiries': document.getElementById("inquiriesManagementSection")
     };
-    
+
     Object.keys(views).forEach(k => {
         if (views[k]) {
             if (k === targetView) views[k].classList.remove("hidden");
             else views[k].classList.add("hidden");
         }
     });
-    
+
     // Strict Cleanup: Ensure sidebar navigation buttons drop active highlight states
     document.querySelectorAll("aside nav button").forEach(b => {
         b.classList.remove("bg-emerald-600", "text-white", "dark:text-gray-950", "font-bold", "shadow-md");
         b.classList.add("text-slate-600", "dark:text-gray-400", "hover:bg-slate-100", "dark:hover:bg-gray-900");
     });
-    
+
     // Strict Cleanup: Ensure Inquiries button stays hidden for user role across all view transitions
     const inquiriesBtn = document.getElementById("topHeaderInquiriesBtn");
     if (inquiriesBtn) {
@@ -520,21 +520,21 @@ function switchViewMode(targetView, propertyId = null) {
             nav.classList.add("bg-emerald-600", "text-white", "dark:text-gray-950", "font-bold", "shadow-md");
         }
     }
-    
+
     const title = document.getElementById("viewTitleHeader");
     const subtitle = document.getElementById("viewSubtitleHeader");
-    
+
     if (targetView === 'dashboard') {
         setActiveNav("nav-dashboard");
         if (title) title.innerText = "GLOBAL ENTERPRISE DASHBOARD";
         if (subtitle) subtitle.innerText = "Aggregated Cross-Domain Search Analysis Core View";
-        
+
         const sitesCountNode = document.getElementById("dashboardActiveSitesCount");
         if (sitesCountNode && typeof corporateDomainsList !== 'undefined') {
             sitesCountNode.innerText = `${corporateDomainsList.length} Properties`;
         }
         if (typeof loadEnterpriseDomains === "function") loadEnterpriseDomains();
-    } 
+    }
     else if (targetView === 'duties') {
         setActiveNav("nav-duties");
         if (title) title.innerText = "DAILY OPERATION ROUTING BOARD";
@@ -568,11 +568,11 @@ function switchViewMode(targetView, propertyId = null) {
     else if (targetView === 'property' && propertyId) {
         activeDomainId = propertyId;
         setActiveNav(`nav-prop-${propertyId}`);
-        
+
         const matchedObj = corporateDomainsList.find(d => d.id == propertyId);
         if (title) title.innerText = matchedObj ? matchedObj.site_name.toUpperCase() : "PROPERTY MONITOR WORKSPACE";
         if (subtitle) subtitle.innerText = `Workspace Environment Engine Context: ${matchedObj ? matchedObj.site_url : ''}`;
-        
+
         const modeToggle = document.getElementById("workspaceModeControlsToggle");
 
         if (activeSessionUser && activeSessionUser.role === 'user') {
@@ -580,12 +580,12 @@ function switchViewMode(targetView, propertyId = null) {
             if (modeToggle) modeToggle.classList.add("hidden");
         } else if (activeSessionUser && activeSessionUser.role === 'it_staff') {
             if (typeof setWorkspaceOperationMode === "function") setWorkspaceOperationMode('view');
-            if (modeToggle) modeToggle.classList.add("hidden"); 
+            if (modeToggle) modeToggle.classList.add("hidden");
         } else {
             if (typeof setWorkspaceOperationMode === "function") setWorkspaceOperationMode('view');
             if (modeToggle) modeToggle.classList.remove("hidden");
         }
-        
+
         if (typeof loadDatabaseRecords === "function") loadDatabaseRecords();
     }
     else if (targetView === 'inquiries') {
@@ -593,14 +593,14 @@ function switchViewMode(targetView, propertyId = null) {
         if (subtitle) subtitle.innerText = "Track and Manage Client Safari Conversions";
         loadInquiriesPerformanceBoard();
     }
-    
+
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 function loadSystemAuditStreamLogs() {
     const tbody = document.querySelector("#systemAuditLogsStreamTable tbody");
     if (!tbody) return;
-    
+
     fetch('api.php?action=fetch_audit_logs')
         .then(res => res.json())
         .then(res => {
@@ -641,7 +641,7 @@ function loadCorporateUsersRegistry() {
                 tbody.innerHTML = "";
                 res.data.forEach(user => {
                     const canEdit = !(isIT && (user.user_role === 'admin' || user.user_role === 'manager'));
-                    
+
                     const tr = document.createElement("tr");
                     tr.className = "hover:bg-slate-50 dark:hover:bg-gray-900/30 border-b border-slate-200 dark:border-gray-850 text-xs text-slate-700 dark:text-gray-300";
                     tr.innerHTML = `
@@ -719,10 +719,10 @@ function triggerDomainModificationPopup(domain) {
         if (res.isConfirmed && res.value) {
             fetch('api.php?action=save_domain', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(res.value)
             }).then(r => r.json()).then(data => {
-                if(data.status === 'success') {
+                if (data.status === 'success') {
                     loadGlobalTenantProperties();
                     if (activeViewMode === 'domains') loadTenantDomainsRegistry();
                     Swal.fire('Committed', 'Property structural modifications deployed.', 'success');
@@ -745,10 +745,10 @@ function executeDomainDeletionSequence(dId) {
         if (res.isConfirmed) {
             fetch('api.php?action=delete_domain', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: dId })
             }).then(r => r.json()).then(data => {
-                if(data.status === 'success') {
+                if (data.status === 'success') {
                     loadGlobalTenantProperties();
                     if (activeViewMode === 'domains') loadTenantDomainsRegistry();
                     Swal.fire('Purged', 'Domain structure wiped completely.', 'success');
@@ -763,12 +763,12 @@ function executeDomainDeletionSequence(dId) {
 function loadDutiesConfigurationRegistry() {
     const sectionContainer = document.getElementById("dutiesManagementSection");
     if (!sectionContainer) return;
-    
+
     const datePicker = document.getElementById("dutyScheduleDatePicker");
     const pickedDate = datePicker ? datePicker.value : new Date().toISOString().split('T')[0];
-    
+
     const isPrivileged = activeSessionUser && ['admin', 'manager'].includes(activeSessionUser.role);
-    
+
     fetch(`api.php?action=fetch_duties_registry&date=${pickedDate}`)
         .then(res => res.json())
         .then(res => {
@@ -824,45 +824,53 @@ function loadDutiesConfigurationRegistry() {
                             <tbody class="divide-y divide-slate-100 dark:divide-gray-850">
                 `;
 
+                // ... inside loadDutiesConfigurationRegistry() ...
                 if (res.data.length === 0) {
                     dashboardHTML += `<tr><td colspan="6" class="p-6 text-center text-slate-400 font-mono italic">No tracking operations scheduled today.</td></tr>`;
                 } else {
                     res.data.forEach(duty => {
-                        if(!duty.duty_id) return; 
+                        if (!duty.duty_id) return;
                         const isComplete = duty.status === 'Complete';
-                        const statusBadge = isComplete 
-                            ? '<span class="px-2.5 py-1 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 w-max"><i data-lucide="check" class="w-3 h-3"></i> Complete</span>'
-                            : '<span class="px-2.5 py-1 bg-orange-50 text-orange-600 border border-orange-200 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 w-max"><i data-lucide="clock" class="w-3 h-3"></i> Pending</span>';
-                        
-                        const bookBadge = duty.book_category === 'green' 
-                            ? '<span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800 rounded text-[10px] uppercase font-bold">Green Book</span>' 
+                        const isOverwritten = duty.overwritten_by !== null && duty.overwritten_by !== duty.user_id;
+
+                        let statusBadge = '';
+                        if (isOverwritten) {
+                            statusBadge = `<span class="px-2.5 py-1 bg-purple-50 text-purple-600 border border-purple-200 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 w-max" title="Committed by ${duty.overwriter_name}"><i data-lucide="shield-check" class="w-3 h-3"></i> Mgmt Override</span>`;
+                        } else if (isComplete) {
+                            statusBadge = '<span class="px-2.5 py-1 bg-emerald-50 text-emerald-600 border border-emerald-200 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 w-max"><i data-lucide="check" class="w-3 h-3"></i> Complete</span>';
+                        } else {
+                            statusBadge = '<span class="px-2.5 py-1 bg-orange-50 text-orange-600 border border-orange-200 rounded text-[10px] font-bold uppercase tracking-wider flex items-center gap-1 w-max"><i data-lucide="clock" class="w-3 h-3"></i> Pending</span>';
+                        }
+
+                        const bookBadge = duty.book_category === 'green'
+                            ? '<span class="px-2.5 py-1 bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-800 rounded text-[10px] uppercase font-bold">Green Book</span>'
                             : '<span class="px-2.5 py-1 bg-slate-800 text-white border border-slate-700 dark:bg-gray-800 dark:text-gray-200 dark:border-gray-700 rounded text-[10px] uppercase font-bold">Black Book</span>';
 
                         const timeCompletedStr = (isComplete && duty.completed_at)
-                            ? `<span class="text-[11px] font-mono text-slate-500 dark:text-gray-400 flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i>${new Date(duty.completed_at).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>`
+                            ? `<span class="text-[11px] font-mono text-slate-500 dark:text-gray-400 flex items-center gap-1"><i data-lucide="clock" class="w-3 h-3"></i>${new Date(duty.completed_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>`
                             : '<span class="text-[11px] font-mono text-slate-300 dark:text-gray-600">-</span>';
 
                         dashboardHTML += `
-                            <tr class="hover:bg-slate-50 dark:hover:bg-gray-900/40 transition">
-                                <td class="p-4 font-bold text-slate-800 dark:text-gray-200">${duty.full_name}</td>
-                                <td class="p-4 font-mono text-slate-600 dark:text-gray-400">${duty.site_name}</td>
-                                <td class="p-4">${bookBadge}</td>
-                                <td class="p-4">
-                                    <div class="inline-flex items-center gap-2">
-                                        ${statusBadge}
-                                    </div>
-                                </td>
-                                <td class="p-4">${timeCompletedStr}</td>
-                                ${isPrivileged ? `<td class="p-4 text-right"><button onclick="removeTaskAssignment(${duty.duty_id})" class="p-2 text-rose-500 hover:bg-rose-50 rounded transition"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>` : ''}
-                            </tr>
-                        `;
+            <tr class="hover:bg-slate-50 dark:hover:bg-gray-900/40 transition">
+                <td class="p-4 font-bold text-slate-800 dark:text-gray-200">${duty.full_name}</td>
+                <td class="p-4 font-mono text-slate-600 dark:text-gray-400">${duty.site_name}</td>
+                <td class="p-4">${bookBadge}</td>
+                <td class="p-4">
+                    <div class="inline-flex items-center gap-2">
+                        ${statusBadge}
+                    </div>
+                </td>
+                <td class="p-4">${timeCompletedStr}</td>
+                ${isPrivileged ? `<td class="p-4 text-right"><button onclick="removeTaskAssignment(${duty.duty_id})" class="p-2 text-rose-500 hover:bg-rose-50 rounded transition"><i data-lucide="trash-2" class="w-4 h-4"></i></button></td>` : ''}
+            </tr>
+        `;
                     });
                 }
 
                 dashboardHTML += `</tbody></table></div>`;
-                
+
                 let wrapper = document.getElementById("dutiesDashboardWrapper");
-                if(!wrapper) {
+                if (!wrapper) {
                     wrapper = document.createElement("div");
                     wrapper.id = "dutiesDashboardWrapper";
                     document.querySelector("#dailyDutiesWorkflowTable").parentElement.replaceWith(wrapper);
@@ -878,7 +886,7 @@ function toggleTaskStateText(checkbox, dutyId) {
     const newStatus = checkbox.checked ? 'Complete' : 'Pending';
     fetch('api.php?action=update_duty_status', {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ duty_id: dutyId, status: newStatus })
     }).then(() => loadDutiesConfigurationRegistry());
 }
@@ -895,7 +903,7 @@ function resetDailyAssignments(targetDate) {
         if (res.isConfirmed) {
             fetch('api.php?action=clear_daily_duties', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ date: targetDate })
             }).then(() => {
                 Swal.fire('Cleared!', 'The board has been reset.', 'success');
@@ -916,7 +924,7 @@ async function triggerAutoAssignModal(targetDate) {
 
     const existingDutiesRes = await fetch(`api.php?action=fetch_duties_registry&date=${targetDate}`).then(r => r.json());
     const completedTasksMap = new Set();
-    
+
     if (existingDutiesRes.status === 'success') {
         existingDutiesRes.data.forEach(d => {
             if (d.status === 'Complete') {
@@ -1043,20 +1051,20 @@ function executeTaskAssignmentBroadcast(workerId, targetDate) {
         method: 'POST',
         body: formData
     })
-    .then(res => res.text())
-    .then(text => {
-        if (text.trim() === "SUCCESS") {
-            const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
-            Toast.fire({ icon: 'success', title: 'Task assignment added.' });
-            loadDutiesConfigurationRegistry(); 
-        } else {
-            Swal.fire('Assignment Error', text, 'error');
-        }
-    })
-    .catch(err => {
-        console.error("Fetch Error:", err);
-        Swal.fire('Network Error', 'Failed to communicate with the server.', 'error');
-    });
+        .then(res => res.text())
+        .then(text => {
+            if (text.trim() === "SUCCESS") {
+                const Toast = Swal.mixin({ toast: true, position: 'top-end', showConfirmButton: false, timer: 1500 });
+                Toast.fire({ icon: 'success', title: 'Task assignment added.' });
+                loadDutiesConfigurationRegistry();
+            } else {
+                Swal.fire('Assignment Error', text, 'error');
+            }
+        })
+        .catch(err => {
+            console.error("Fetch Error:", err);
+            Swal.fire('Network Error', 'Failed to communicate with the server.', 'error');
+        });
 }
 
 function triggerUserCreationModal() {
@@ -1118,10 +1126,10 @@ function triggerUserModificationPopup(user) {
         if (res.isConfirmed && res.value) {
             fetch('api.php?action=save_user', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(res.value)
             }).then(r => r.json()).then(data => {
-                if(data.status === 'success') {
+                if (data.status === 'success') {
                     loadCorporateUsersRegistry();
                     Swal.fire('Committed', 'User profile records synchronized.', 'success');
                 } else {
@@ -1143,10 +1151,10 @@ function executeUserDeletionSequence(uId) {
         if (res.isConfirmed) {
             fetch('api.php?action=delete_user', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: uId })
             }).then(r => r.json()).then(data => {
-                if(data.status === 'success') {
+                if (data.status === 'success') {
                     loadCorporateUsersRegistry();
                     Swal.fire('Purged', 'Profile completely dropped.', 'success');
                 } else {
@@ -1161,7 +1169,7 @@ function executeUserDeletionSequence(uId) {
 // INQUIRIES DESK LOGIC & REAL-TIME FILTERING
 // ==========================================================================
 
-let allInquiriesData = []; 
+let allInquiriesData = [];
 let inqDateFilter = "7";
 let inqCustomStartVal = null;
 let inqCustomEndVal = null;
@@ -1185,9 +1193,9 @@ function loadInquiriesPerformanceBoard() {
         .then(res => {
             const domSelect = document.getElementById("inqDomainSelect");
             if (res.status === 'success' && domSelect) {
-                domSelect.innerHTML = '<option value="all" selected>Search All Parameters</option>' + 
+                domSelect.innerHTML = '<option value="all" selected>Search All Parameters</option>' +
                     res.data.map(d => `<option value="${d.id}">${d.site_name}</option>`).join('');
-                domSelect.value = inqDomainFilterVal; 
+                domSelect.value = inqDomainFilterVal;
             }
         });
 
@@ -1255,12 +1263,12 @@ function renderInquiriesTableAndStats() {
 
     // Render Cleaned Data Table Rows
     tbody.innerHTML = "";
-    
+
     if (filteredData.length === 0) {
         tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-400 font-mono italic">No tracking operations recorded in this specific parameter range.</td></tr>`;
     } else {
         filteredData.forEach(inq => {
-            const sourceBadge = inq.inquiry_source === 'WhatsApp' 
+            const sourceBadge = inq.inquiry_source === 'WhatsApp'
                 ? `<span class="text-emerald-500 font-bold bg-emerald-50 dark:bg-emerald-950/30 px-1.5 py-0.5 rounded text-[10px]"><i data-lucide="message-circle" class="w-3 h-3 inline-block -mt-0.5"></i> WhatsApp</span>`
                 : `<span class="text-blue-500 font-bold bg-blue-50 dark:bg-blue-950/30 px-1.5 py-0.5 rounded text-[10px]"><i data-lucide="mail" class="w-3 h-3 inline-block -mt-0.5"></i> Email</span>`;
 
@@ -1292,7 +1300,7 @@ function renderInquiriesTableAndStats() {
             tbody.appendChild(tr);
         });
     }
-    
+
     if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
@@ -1341,7 +1349,7 @@ function triggerAddInquiryModal(existingData = null) {
 
             const isEdit = existingData !== null;
             const domainOptions = res.data.map(d => `<option value="${d.id}" ${(isEdit && existingData.domain_id == d.id) ? 'selected' : ''}>${d.site_name} (${d.site_url})</option>`).join('');
-            
+
             const todayStr = new Date().toISOString().split('T')[0];
             const dataObj = isEdit ? existingData : { client_name: '', safari_type: '', phone_number: '', inquiry_date: todayStr, inquiry_source: 'Email' };
 
@@ -1400,10 +1408,10 @@ function triggerAddInquiryModal(existingData = null) {
                 if (res.isConfirmed && res.value) {
                     fetch('api.php?action=save_inquiry', {
                         method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
+                        headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(res.value)
                     }).then(r => r.json()).then(data => {
-                        if(data.status === 'success') {
+                        if (data.status === 'success') {
                             loadInquiriesPerformanceBoard();
                             SystemToast.fire({ icon: 'success', title: 'Inquiry Matrix Updated!' });
                         } else {
@@ -1426,10 +1434,10 @@ function executeInquiryDeletion(id) {
         if (res.isConfirmed) {
             fetch('api.php?action=delete_inquiry', {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ id: id })
-            }).then(r=>r.json()).then(data => {
-                if(data.status === 'success') loadInquiriesPerformanceBoard();
+            }).then(r => r.json()).then(data => {
+                if (data.status === 'success') loadInquiriesPerformanceBoard();
             });
         }
     });
@@ -1440,9 +1448,9 @@ function triggerAdminInquiryAssignments() {
         .then(r => r.json())
         .then(res => {
             if (res.status !== 'success') return;
-            
+
             let htmlList = `<div class="max-h-[400px] overflow-y-auto space-y-4 text-left font-mono text-xs">`;
-            
+
             res.data.forEach(staff => {
                 let tags = staff.assigned_domains.map(d => `
                     <span class="inline-flex items-center gap-1 bg-indigo-50 border border-indigo-200 text-indigo-700 dark:bg-indigo-900/30 dark:border-indigo-800 dark:text-indigo-400 px-2 py-1 rounded mt-1">
@@ -1480,17 +1488,17 @@ function triggerAdminInquiryAssignments() {
         });
 }
 
-window.addAdminInquiryAssign = function(userId) {
+window.addAdminInquiryAssign = function (userId) {
     const domId = document.getElementById(`assign_dom_${userId}`).value;
     fetch('api.php?action=save_inquiry_assignment', {
-        method: 'POST', headers: {'Content-Type': 'application/json'},
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: userId, domain_id: domId })
     }).then(() => { triggerAdminInquiryAssignments(); });
 }
 
-window.removeAdminInquiryAssign = function(userId, domId) {
+window.removeAdminInquiryAssign = function (userId, domId) {
     fetch('api.php?action=remove_inquiry_assignment', {
-        method: 'POST', headers: {'Content-Type': 'application/json'},
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ user_id: userId, domain_id: domId })
     }).then(() => { triggerAdminInquiryAssignments(); });
 }
@@ -1504,13 +1512,13 @@ function startLiveSystemClock() {
 
     setInterval(() => {
         const now = new Date();
-        const formattedTime = now.getFullYear() + '-' + 
-            String(now.getMonth() + 1).padStart(2, '0') + '-' + 
-            String(now.getDate()).padStart(2, '0') + ' ' + 
-            String(now.getHours()).padStart(2, '0') + ':' + 
-            String(now.getMinutes()).padStart(2, '0') + ':' + 
+        const formattedTime = now.getFullYear() + '-' +
+            String(now.getMonth() + 1).padStart(2, '0') + '-' +
+            String(now.getDate()).padStart(2, '0') + ' ' +
+            String(now.getHours()).padStart(2, '0') + ':' +
+            String(now.getMinutes()).padStart(2, '0') + ':' +
             String(now.getSeconds()).padStart(2, '0');
-        
+
         clockElement.innerText = formattedTime;
     }, 1000);
 }

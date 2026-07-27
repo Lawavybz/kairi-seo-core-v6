@@ -104,9 +104,11 @@ CREATE TABLE daily_duties (
     assigned_by_user_id INT NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     completed_at TIMESTAMP NULL DEFAULT NULL,
+    overwritten_by INT NULL DEFAULT NULL, -- Tracks management override execution
     CONSTRAINT fk_duty_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
     CONSTRAINT fk_duty_domain FOREIGN KEY (domain_id) REFERENCES domains(id) ON DELETE CASCADE,
     CONSTRAINT fk_duty_assigner FOREIGN KEY (assigned_by_user_id) REFERENCES users(id) ON DELETE CASCADE,
+    CONSTRAINT fk_duty_overwriter FOREIGN KEY (overwritten_by) REFERENCES users(id) ON DELETE SET NULL,
     UNIQUE KEY unique_user_assignment_book_per_day (user_id, domain_id, book_category, duty_date)
 ) ENGINE=InnoDB;
 

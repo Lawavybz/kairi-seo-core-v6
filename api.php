@@ -274,17 +274,19 @@ if ($action === 'fetch_duties_registry') {
     $date = $_GET['date'] ?? date('Y-m-d');
     
     if (in_array($currentUser['role'], ['admin', 'manager', 'it_staff'])) {
-        $stmt = $conn->prepare("SELECT d.id as duty_id, u.id as user_id, u.full_name, u.username, dom.id as domain_id, dom.site_name, d.duty_date, d.status, d.book_category, d.completed_at 
+        $stmt = $conn->prepare("SELECT d.id as duty_id, u.id as user_id, u.full_name, u.username, dom.id as domain_id, dom.site_name, d.duty_date, d.status, d.book_category, d.completed_at, d.overwritten_by, o.full_name as overwriter_name 
                                 FROM users u 
                                 LEFT JOIN daily_duties d ON u.id = d.user_id AND d.duty_date = ?
                                 LEFT JOIN domains dom ON d.domain_id = dom.id AND dom.is_deleted = 0
+                                LEFT JOIN users o ON d.overwritten_by = o.id
                                 WHERE u.user_role = 'user' AND u.is_deleted = 0 ORDER BY u.id ASC");
         $stmt->execute([$date]);
     } else {
-        $stmt = $conn->prepare("SELECT d.id as duty_id, u.id as user_id, u.full_name, dom.id as domain_id, dom.site_name, d.duty_date, d.status, d.book_category, d.completed_at 
+        $stmt = $conn->prepare("SELECT d.id as duty_id, u.id as user_id, u.full_name, dom.id as domain_id, dom.site_name, d.duty_date, d.status, d.book_category, d.completed_at, d.overwritten_by, o.full_name as overwriter_name 
                                 FROM users u
                                 INNER JOIN daily_duties d ON u.id = d.user_id 
                                 INNER JOIN domains dom ON d.domain_id = dom.id AND dom.is_deleted = 0
+                                LEFT JOIN users o ON d.overwritten_by = o.id
                                 WHERE u.id = ? AND d.duty_date = ? AND u.is_deleted = 0");
         $stmt->execute([$currentUser['id'], $date]);
     }
@@ -425,19 +427,23 @@ if ($action === 'save_matrix' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         
         if ($currentUser['role'] === 'user') {
+            // Standard user completes their own task normally
             $completeStmt = $conn->prepare("UPDATE daily_duties SET status = 'Complete', completed_at = CURRENT_TIMESTAMP WHERE user_id = ? AND domain_id = ? AND book_category = ? AND duty_date = ?");
             $completeStmt->execute([$currentUser['id'], $domId, $dbEnumVal, $targetDate]);
         } else {
-            $checkStmt = $conn->prepare("SELECT id FROM daily_duties WHERE domain_id = ? AND book_category = ? AND duty_date = ?");
+            // Admin or Manager is completing a task
+            $checkStmt = $conn->prepare("SELECT id, user_id FROM daily_duties WHERE domain_id = ? AND book_category = ? AND duty_date = ?");
             $checkStmt->execute([$domId, $dbEnumVal, $targetDate]);
             $existingDuty = $checkStmt->fetch();
 
             if ($existingDuty) {
-                $completeStmt = $conn->prepare("UPDATE daily_duties SET status = 'Complete', completed_at = CURRENT_TIMESTAMP, user_id = ? WHERE id = ?");
+                // Task exists. Mark it complete, preserve the original user, but flag that management overwrote it.
+                $completeStmt = $conn->prepare("UPDATE daily_duties SET status = 'Complete', completed_at = CURRENT_TIMESTAMP, overwritten_by = ? WHERE id = ?");
                 $completeStmt->execute([$currentUser['id'], $existingDuty['id']]);
             } else {
-                $insertStmt = $conn->prepare("INSERT INTO daily_duties (user_id, domain_id, book_category, duty_date, status, assigned_by_user_id, completed_at) VALUES (?, ?, ?, ?, 'Complete', ?, CURRENT_TIMESTAMP)");
-                $insertStmt->execute([$currentUser['id'], $domId, $dbEnumVal, $targetDate, $currentUser['id']]);
+                // Task didn't exist, create it as completed by the manager directly.
+                $insertStmt = $conn->prepare("INSERT INTO daily_duties (user_id, domain_id, book_category, duty_date, status, assigned_by_user_id, completed_at, overwritten_by) VALUES (?, ?, ?, ?, 'Complete', ?, CURRENT_TIMESTAMP, ?)");
+                $insertStmt->execute([$currentUser['id'], $domId, $dbEnumVal, $targetDate, $currentUser['id'], $currentUser['id']]);
             }
         }
         

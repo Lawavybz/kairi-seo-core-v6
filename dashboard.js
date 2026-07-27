@@ -65,24 +65,26 @@ async function calculateAndRenderGlobalMetrics() {
                 categorizeRankDistribution(s1Logs);
                 categorizeRankDistribution(s2Logs);
 
-                // Calculate cumulative scores for Green Book (Section 1) if records exist
-                const s1Dates = Object.keys(s1Logs);
+                // Calculate rolling average for Green Book (Section 1) - Last 30 records max if total > 30
+                const s1Dates = Object.keys(s1Logs).sort((a, b) => new Date(a) - new Date(b));
                 if (s1Dates.length > 0) {
+                    const targetS1Dates = s1Dates.length > 30 ? s1Dates.slice(-30) : s1Dates;
                     let s1TotalSum = 0;
-                    s1Dates.forEach(date => {
+                    targetS1Dates.forEach(date => {
                         s1TotalSum += computeWeightedMatrixTotal(s1Logs[date]);
                     });
-                    s1Avg = Math.round(s1TotalSum / s1Dates.length);
+                    s1Avg = Math.round(s1TotalSum / targetS1Dates.length);
                 }
 
-                // Calculate cumulative scores for Black Book (Section 2) if records exist
-                const s2Dates = Object.keys(s2Logs);
+                // Calculate rolling average for Black Book (Section 2) - Last 30 records max if total > 30
+                const s2Dates = Object.keys(s2Logs).sort((a, b) => new Date(a) - new Date(b));
                 if (s2Dates.length > 0) {
+                    const targetS2Dates = s2Dates.length > 30 ? s2Dates.slice(-30) : s2Dates;
                     let s2TotalSum = 0;
-                    s2Dates.forEach(date => {
+                    targetS2Dates.forEach(date => {
                         s2TotalSum += computeWeightedMatrixTotal(s2Logs[date]);
                     });
-                    s2Avg = Math.round(s2TotalSum / s2Dates.length);
+                    s2Avg = Math.round(s2TotalSum / targetS2Dates.length);
                 }
 
                 const numS1 = typeof s1Avg === 'number' ? s1Avg : 50;
