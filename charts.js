@@ -17,7 +17,26 @@ function updateGlobalDashboardCharts(dateScoreTracker, page1, pages2to10, unrank
     const gridColorValue = isDark ? '#1f2937' : '#e2e8f0';
     const labelColorValue = isDark ? '#9ca3af' : '#64748b';
 
-    const sortedTimelineDates = Object.keys(dateScoreTracker).sort((a, b) => new Date(a) - new Date(b));
+    // Sort all tracked timeline entries chronologically
+    const allDates = Object.keys(dateScoreTracker).sort((a, b) => new Date(a) - new Date(b));
+    
+    // --------------------------------------------------------------------------
+    // ROLLING 30-DAY TIMELINE FILTER FOR GLOBAL TRENDLINE
+    // --------------------------------------------------------------------------
+    let sortedTimelineDates = allDates;
+    if (allDates.length > 0) {
+        const latestDate = new Date(allDates[allDates.length - 1]);
+        latestDate.setHours(0, 0, 0, 0);
+        
+        sortedTimelineDates = allDates.filter(dateStr => {
+            const logDate = new Date(dateStr);
+            logDate.setHours(0, 0, 0, 0);
+            const diffTime = latestDate - logDate;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            return diffDays < 30; // Keeps only records from the last 30 days
+        });
+    }
+
     const normalizedAveragesArray = sortedTimelineDates.map(date => {
         const item = dateScoreTracker[date];
         return Math.round(item.sum / item.count);
@@ -85,7 +104,6 @@ function updateGlobalDashboardCharts(dateScoreTracker, page1, pages2to10, unrank
         });
     }
 }
-
 function setChartBookSegmentView(targetSegmentKey) {
     window.activeChartBookSegment = targetSegmentKey;
     const btn1 = document.getElementById("chartSegmentBtnS1");

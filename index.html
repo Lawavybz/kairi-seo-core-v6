@@ -262,7 +262,8 @@
                             class="bg-white border border-slate-200 dark:bg-gray-950 dark:border-gray-800 p-5 rounded-xl shadow-sm flex items-center gap-4">
                             <div
                                 class="p-3 bg-emerald-50 dark:bg-emerald-950/50 rounded-lg text-emerald-600 dark:text-emerald-400">
-                                <i data-lucide="server" class="w-6 h-6"></i></div>
+                                <i data-lucide="server" class="w-6 h-6"></i>
+                            </div>
                             <div><span class="block text-xs font-mono text-slate-400 uppercase tracking-wider">Total
                                     Active Sites</span><strong class="text-xl font-bold font-mono"
                                     id="dashboardActiveSitesCount">0 Properties</strong></div>
@@ -270,7 +271,8 @@
                         <div
                             class="bg-white border border-slate-200 dark:bg-gray-950 dark:border-gray-800 p-5 rounded-xl shadow-sm flex items-center gap-4">
                             <div class="p-3 bg-blue-50 dark:bg-blue-950/50 rounded-lg text-blue-600 dark:text-blue-400">
-                                <i data-lucide="key-round" class="w-6 h-6"></i></div>
+                                <i data-lucide="key-round" class="w-6 h-6"></i>
+                            </div>
                             <div><span class="block text-xs font-mono text-slate-400 uppercase tracking-wider">Monitored
                                     Phrases</span><strong class="text-xl font-bold font-mono">Dynamic Isolated</strong>
                             </div>
@@ -279,7 +281,8 @@
                             class="bg-white border border-slate-200 dark:bg-gray-950 dark:border-gray-800 p-5 rounded-xl shadow-sm flex items-center gap-4">
                             <div
                                 class="p-3 bg-amber-50 dark:bg-amber-950/50 rounded-lg text-amber-600 dark:text-amber-400">
-                                <i data-lucide="shield-check" class="w-6 h-6"></i></div>
+                                <i data-lucide="shield-check" class="w-6 h-6"></i>
+                            </div>
                             <div><span class="block text-xs font-mono text-slate-400 uppercase tracking-wider">Access
                                     Control</span><strong class="text-xl font-bold font-mono text-emerald-400">RBAC
                                     Active</strong></div>
@@ -288,7 +291,8 @@
                             class="bg-white border border-slate-200 dark:bg-gray-950 dark:border-gray-800 p-5 rounded-xl shadow-sm flex items-center gap-4">
                             <div
                                 class="p-3 bg-indigo-50 dark:bg-indigo-950/50 rounded-lg text-indigo-600 dark:text-indigo-400">
-                                <i data-lucide="history" class="w-6 h-6"></i></div>
+                                <i data-lucide="history" class="w-6 h-6"></i>
+                            </div>
                             <div><span class="block text-xs font-mono text-slate-400 uppercase tracking-wider">Audit
                                     Security</span><strong class="text-xl font-bold font-mono text-emerald-500">Logging
                                     Stream</strong></div>
@@ -843,6 +847,53 @@
 
                 <!-- VIEWPORT 8: INQUIRIES & LEAD PERFORMANCE DESK -->
                 <div id="inquiriesManagementSection" class="hidden space-y-6">
+
+                    <!-- INQUIRIES FILTER CONTROLS -->
+                    <div id="inquiriesFilterControls"
+                        class="bg-white border border-slate-200 dark:bg-gray-950 dark:border-gray-800 rounded-xl p-4 shadow-sm flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4">
+                        <div class="flex flex-col sm:flex-row items-start sm:items-center gap-4 w-full xl:w-auto">
+                            <div class="flex items-center gap-3 w-full sm:w-auto">
+                                <label
+                                    class="text-xs font-mono font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider shrink-0">
+                                    <i data-lucide="filter" class="w-3.5 h-3.5 inline-block text-indigo-500 mb-0.5"></i>
+                                    Data View Period:
+                                </label>
+                                <select id="inqRangeSelect" onchange="changeInqDateFilter(this.value)"
+                                    class="w-full sm:w-auto bg-slate-50 border border-slate-200 dark:bg-gray-900 dark:border-gray-800 rounded-lg py-2 px-3 text-xs font-mono text-slate-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500">
+                                    <option value="7" selected>Past Week (7 Days)</option>
+                                    <option value="30">Past Month (30 Days)</option>
+                                    <option value="all">All Available History</option>
+                                    <option value="custom">Specific Date Range...</option>
+                                </select>
+                            </div>
+
+                            <div id="inqCustomDateRangeUI" class="hidden items-center gap-2 w-full sm:w-auto">
+                                <input type="date" id="inqCustomStart"
+                                    class="w-full sm:w-auto bg-slate-50 border border-slate-200 dark:bg-gray-900 dark:border-gray-800 rounded-lg p-2 text-xs font-mono text-slate-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500">
+                                <span class="text-slate-400 font-mono text-[10px] uppercase">to</span>
+                                <input type="date" id="inqCustomEnd"
+                                    class="w-full sm:w-auto bg-slate-50 border border-slate-200 dark:bg-gray-900 dark:border-gray-800 rounded-lg p-2 text-xs font-mono text-slate-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500">
+                                <button onclick="applyInqCustomDateFilter()" type="button"
+                                    class="shrink-0 bg-indigo-600 hover:bg-indigo-500 text-white font-bold font-mono text-xs px-3 py-2 rounded-lg transition-colors shadow-sm">
+                                    Apply Limits
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="flex items-center gap-3 w-full xl:w-auto">
+                            <label
+                                class="text-xs font-mono font-bold text-slate-500 dark:text-gray-400 uppercase tracking-wider shrink-0">
+                                <i data-lucide="globe" class="w-3.5 h-3.5 inline-block text-indigo-500 mb-0.5"></i>
+                                Target Website:
+                            </label>
+                            <select id="inqDomainSelect" onchange="changeInqDomainFilter(this.value)"
+                                class="w-full sm:w-64 bg-slate-50 border border-slate-200 dark:bg-gray-900 dark:border-gray-800 rounded-lg py-2 px-3 text-xs font-mono text-slate-800 dark:text-gray-200 focus:outline-none focus:border-indigo-500">
+                                <option value="all" selected>Search All Parameters</option>
+                                <!-- Populated dynamically via JS based on Role Access -->
+                            </select>
+                        </div>
+                    </div>
+
                     <!-- Top Statistics Tiles -->
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                         <div
@@ -916,7 +967,6 @@
                         </div>
                     </div>
                 </div>
-
             </div> <!-- End of flex-grow wrapper -->
 
             <!-- KAIRI IT FOOTER -->

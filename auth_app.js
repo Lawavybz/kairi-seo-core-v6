@@ -1158,80 +1158,179 @@ function executeUserDeletionSequence(uId) {
 }
 
 // ==========================================================================
-// INQUIRIES DESK LOGIC
+// INQUIRIES DESK LOGIC & REAL-TIME FILTERING
 // ==========================================================================
+
+let allInquiriesData = []; 
+let inqDateFilter = "7";
+let inqCustomStartVal = null;
+let inqCustomEndVal = null;
+let inqDomainFilterVal = "all";
 
 function loadInquiriesPerformanceBoard() {
     const tbody = document.querySelector("#inquiriesRegistryTable tbody");
     const adminAssignBtn = document.getElementById("adminManageInqAssignBtn");
     if (!tbody) return;
 
-    // Only Admins can see the assignment button (Managers cannot assign)
+    // Assignment Manager limits
     if (activeSessionUser && activeSessionUser.role === 'admin') {
         adminAssignBtn.classList.remove("hidden");
     } else {
         adminAssignBtn.classList.add("hidden");
     }
 
+    // 1. Fetch authorized domains for the filter dropdown
+    fetch('api.php?action=fetch_assigned_inquiry_domains')
+        .then(r => r.json())
+        .then(res => {
+            const domSelect = document.getElementById("inqDomainSelect");
+            if (res.status === 'success' && domSelect) {
+                domSelect.innerHTML = '<option value="all" selected>Search All Parameters</option>' + 
+                    res.data.map(d => `<option value="${d.id}">${d.site_name}</option>`).join('');
+                domSelect.value = inqDomainFilterVal; 
+            }
+        });
+
+    // 2. Fetch all authorized inquiries
     fetch('api.php?action=fetch_inquiries')
         .then(res => res.json())
         .then(res => {
             if (res.status === 'success') {
-                tbody.innerHTML = "";
-                let eCount = 0, wCount = 0;
-
-                if (res.data.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-400 font-mono italic">No inquiries have been recorded yet.</td></tr>`;
-                } else {
-                    res.data.forEach(inq => {
-                        if (inq.inquiry_source === 'Email') eCount++;
-                        else wCount++;
-
-                        const sourceBadge = inq.inquiry_source === 'WhatsApp' 
-                            ? `<span class="text-emerald-500 font-bold bg-emerald-50 dark:bg-emerald-950/30 px-1.5 py-0.5 rounded text-[10px]"><i data-lucide="message-circle" class="w-3 h-3 inline-block -mt-0.5"></i> WhatsApp</span>`
-                            : `<span class="text-blue-500 font-bold bg-blue-50 dark:bg-blue-950/30 px-1.5 py-0.5 rounded text-[10px]"><i data-lucide="mail" class="w-3 h-3 inline-block -mt-0.5"></i> Email</span>`;
-
-                        // DYNAMIC ROLE ACTIONS
-                        let actionsHtml = '';
-                        if (activeSessionUser.role === 'admin') {
-                            actionsHtml = `<button onclick='triggerAddInquiryModal(${JSON.stringify(inq).replace(/"/g, '&quot;')})' class="p-1 text-blue-500 hover:underline mx-1">Edit</button>
-                                           <button onclick="executeInquiryDeletion(${inq.id})" class="p-1 text-red-500 hover:underline mx-1">Delete</button>`;
-                        } else if (activeSessionUser.role === 'manager') {
-                            // Managers can edit, but cannot delete
-                            actionsHtml = `<button onclick='triggerAddInquiryModal(${JSON.stringify(inq).replace(/"/g, '&quot;')})' class="p-1 text-blue-500 hover:underline mx-1">Edit</button>`;
-                        } else {
-                            // IT Staff cannot edit or delete
-                            actionsHtml = `<span class="text-[10px] text-slate-400 italic">Locked</span>`;
-                        }
-
-                        const tr = document.createElement("tr");
-                        tr.className = "hover:bg-slate-50 dark:hover:bg-gray-900/30 border-b border-slate-100 dark:border-gray-850 transition";
-                        tr.innerHTML = `
-                            <td class="p-3 font-bold">${inq.inquiry_date}</td>
-                            <td class="p-3 text-indigo-500 font-bold">${inq.site_name}</td>
-                            <td class="p-3 text-slate-800 dark:text-gray-200 font-bold">${inq.client_name}</td>
-                            <td class="p-3">${inq.safari_type}</td>
-                            <td class="p-3 font-mono text-[10px] text-slate-500">${inq.phone_number || 'N/A'}</td>
-                            <td class="p-3 flex flex-col items-start gap-1">
-                                ${sourceBadge}
-                                <span class="text-[9px] text-slate-400">By: ${inq.logged_by}</span>
-                            </td>
-                            <td class="p-3 text-right">${actionsHtml}</td>
-                        `;
-                        tbody.appendChild(tr);
-                    });
-                }
-                
-                document.getElementById("inqTotalStat").innerText = res.data.length;
-                document.getElementById("inqEmailStat").innerText = eCount;
-                document.getElementById("inqWhatsappStat").innerText = wCount;
-                if (typeof lucide !== 'undefined') lucide.createIcons();
+                allInquiriesData = res.data;
+                renderInquiriesTableAndStats(); // Pass to the reactive rendering engine
             }
         });
 }
 
+function renderInquiriesTableAndStats() {
+    const tbody = document.querySelector("#inquiriesRegistryTable tbody");
+    if (!tbody) return;
+
+    // Apply Filter Logic Sequence
+    let filteredData = allInquiriesData;
+
+    // A. Apply Target Domain Filter
+    if (inqDomainFilterVal !== "all") {
+        filteredData = filteredData.filter(item => item.domain_id == inqDomainFilterVal);
+    }
+
+    // B. Apply Timeline Period Filter
+    if (inqDateFilter !== "all") {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        if (inqDateFilter === "custom" && inqCustomStartVal && inqCustomEndVal) {
+            const start = new Date(inqCustomStartVal);
+            const end = new Date(inqCustomEndVal);
+            start.setHours(0, 0, 0, 0);
+            end.setHours(23, 59, 59, 999);
+
+            filteredData = filteredData.filter(item => {
+                const inqDate = new Date(item.inquiry_date);
+                return inqDate >= start && inqDate <= end;
+            });
+        } else if (inqDateFilter !== "custom") {
+            const days = parseInt(inqDateFilter);
+            filteredData = filteredData.filter(item => {
+                const inqDate = new Date(item.inquiry_date);
+                inqDate.setHours(0, 0, 0, 0);
+                const diffTime = Math.abs(today - inqDate);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                return diffDays <= days;
+            });
+        }
+    }
+
+    // Calculate Real-Time Stats
+    let eCount = 0, wCount = 0;
+    filteredData.forEach(inq => {
+        if (inq.inquiry_source === 'Email') eCount++;
+        else wCount++;
+    });
+
+    // Push calculations to UI Tiles
+    document.getElementById("inqTotalStat").innerText = filteredData.length;
+    document.getElementById("inqEmailStat").innerText = eCount;
+    document.getElementById("inqWhatsappStat").innerText = wCount;
+
+    // Render Cleaned Data Table Rows
+    tbody.innerHTML = "";
+    
+    if (filteredData.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="p-6 text-center text-slate-400 font-mono italic">No tracking operations recorded in this specific parameter range.</td></tr>`;
+    } else {
+        filteredData.forEach(inq => {
+            const sourceBadge = inq.inquiry_source === 'WhatsApp' 
+                ? `<span class="text-emerald-500 font-bold bg-emerald-50 dark:bg-emerald-950/30 px-1.5 py-0.5 rounded text-[10px]"><i data-lucide="message-circle" class="w-3 h-3 inline-block -mt-0.5"></i> WhatsApp</span>`
+                : `<span class="text-blue-500 font-bold bg-blue-50 dark:bg-blue-950/30 px-1.5 py-0.5 rounded text-[10px]"><i data-lucide="mail" class="w-3 h-3 inline-block -mt-0.5"></i> Email</span>`;
+
+            // Enforce RBAC
+            let actionsHtml = '';
+            if (activeSessionUser.role === 'admin') {
+                actionsHtml = `<button onclick='triggerAddInquiryModal(${JSON.stringify(inq).replace(/"/g, '&quot;')})' class="p-1 text-blue-500 hover:underline mx-1">Edit</button>
+                               <button onclick="executeInquiryDeletion(${inq.id})" class="p-1 text-red-500 hover:underline mx-1">Delete</button>`;
+            } else if (activeSessionUser.role === 'manager') {
+                actionsHtml = `<button onclick='triggerAddInquiryModal(${JSON.stringify(inq).replace(/"/g, '&quot;')})' class="p-1 text-blue-500 hover:underline mx-1">Edit</button>`;
+            } else {
+                actionsHtml = `<span class="text-[10px] text-slate-400 italic">Locked</span>`;
+            }
+
+            const tr = document.createElement("tr");
+            tr.className = "hover:bg-slate-50 dark:hover:bg-gray-900/30 border-b border-slate-100 dark:border-gray-850 transition";
+            tr.innerHTML = `
+                <td class="p-3 font-bold">${inq.inquiry_date}</td>
+                <td class="p-3 text-indigo-500 font-bold">${inq.site_name}</td>
+                <td class="p-3 text-slate-800 dark:text-gray-200 font-bold">${inq.client_name}</td>
+                <td class="p-3">${inq.safari_type}</td>
+                <td class="p-3 font-mono text-[10px] text-slate-500">${inq.phone_number || 'N/A'}</td>
+                <td class="p-3 flex flex-col items-start gap-1">
+                    ${sourceBadge}
+                    <span class="text-[9px] text-slate-400">By: ${inq.logged_by}</span>
+                </td>
+                <td class="p-3 text-right">${actionsHtml}</td>
+            `;
+            tbody.appendChild(tr);
+        });
+    }
+    
+    if (typeof lucide !== 'undefined') lucide.createIcons();
+}
+
+// ---------------------------------------------------------
+// Filter Engine Control Mutators
+// ---------------------------------------------------------
+function changeInqDateFilter(val) {
+    inqDateFilter = val;
+    const customUI = document.getElementById("inqCustomDateRangeUI");
+    if (val === 'custom') {
+        customUI.classList.remove("hidden");
+        customUI.classList.add("flex");
+    } else {
+        customUI.classList.add("hidden");
+        customUI.classList.remove("flex");
+        renderInquiriesTableAndStats();
+    }
+}
+
+function applyInqCustomDateFilter() {
+    inqCustomStartVal = document.getElementById("inqCustomStart").value;
+    inqCustomEndVal = document.getElementById("inqCustomEnd").value;
+    if (inqCustomStartVal && inqCustomEndVal) {
+        renderInquiriesTableAndStats();
+    } else {
+        Swal.fire({ title: 'Invalid Range', text: 'Please define exact chronological boundaries.', icon: 'warning' });
+    }
+}
+
+function changeInqDomainFilter(val) {
+    inqDomainFilterVal = val;
+    renderInquiriesTableAndStats();
+}
+
+// ---------------------------------------------------------
+// Modal Interfaces & Processing Pipelines
+// ---------------------------------------------------------
 function triggerAddInquiryModal(existingData = null) {
-    // IT staff dynamically fetch ONLY their assigned domains. Admin fetches all.
     fetch('api.php?action=fetch_assigned_inquiry_domains')
         .then(res => res.json())
         .then(res => {
@@ -1278,7 +1377,7 @@ function triggerAddInquiryModal(existingData = null) {
                     </div>
                 `,
                 showCancelButton: true,
-                confirmButtonColor: '#4f46e5', // Indigo-600
+                confirmButtonColor: '#4f46e5',
                 confirmButtonText: isEdit ? 'Commit Changes' : 'Record Inquiry',
                 preConfirm: () => {
                     const clientName = document.getElementById("inqClientName").value.trim();
@@ -1336,9 +1435,6 @@ function executeInquiryDeletion(id) {
     });
 }
 
-// ---------------------------------------------------------
-// ADMIN: Manage IT Assignments for Inquiries
-// ---------------------------------------------------------
 function triggerAdminInquiryAssignments() {
     fetch('api.php?action=fetch_admin_inquiry_assignments')
         .then(r => r.json())
@@ -1357,7 +1453,6 @@ function triggerAdminInquiryAssignments() {
 
                 if (tags === '') tags = `<span class="text-slate-400 italic mt-1 block">No properties currently assigned.</span>`;
 
-                // Add assignment dropdown for this staff member
                 let options = corporateDomainsList.map(d => `<option value="${d.id}">${d.site_url}</option>`).join('');
 
                 htmlList += `
@@ -1385,7 +1480,6 @@ function triggerAdminInquiryAssignments() {
         });
 }
 
-// Global functions for the SweetAlert HTML buttons to reach
 window.addAdminInquiryAssign = function(userId) {
     const domId = document.getElementById(`assign_dom_${userId}`).value;
     fetch('api.php?action=save_inquiry_assignment', {
@@ -1410,7 +1504,6 @@ function startLiveSystemClock() {
 
     setInterval(() => {
         const now = new Date();
-        // Formats as: YYYY-MM-DD HH:MM:SS
         const formattedTime = now.getFullYear() + '-' + 
             String(now.getMonth() + 1).padStart(2, '0') + '-' + 
             String(now.getDate()).padStart(2, '0') + ' ' + 
